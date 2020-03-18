@@ -1,0 +1,10 @@
+import React, { useState } from "react";
+import Todo from './screens/todo';
+import Navigator from './routes/homeStack';
+
+export default function App() {
+
+  return (
+    <Navigator />
+  )
+}
