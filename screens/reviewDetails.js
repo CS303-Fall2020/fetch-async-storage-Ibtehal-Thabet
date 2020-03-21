@@ -3,10 +3,10 @@ import { StyleSheet, Text, View, TextInput, Alert, FlatList, Button, Keyboard } 
 import TodoItem from "../components/todoItem";
 
   export default function ReviewDetails({ navigation }) {
-    const [title, setText] = useState("");
+    const [title, setText] = useState(navigation.getParam('item').title);
 
   const changeHandler = val => {
-    setText(navigation.getParam('item').title + val);
+    setText(val);
   };
 
   const edi = navigation.getParam('edit');

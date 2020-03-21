@@ -1,14 +1,10 @@
 import React, { useState, useEffect, Component } from "react";
-import { StyleSheet, Text, View, FlatList, Alert, TouchableWithoutFeedback, RefreshControl, ActivityIndicator, AsyncStorage, Keyboard, Button } from "react-native";
+import { StyleSheet, Text, View, FlatList, Alert, TouchableWithoutFeedback,
+   ActivityIndicator, AsyncStorage, Keyboard, Button } from "react-native";
 import Header from "../components/header";
 import TodoItem from "../components/todoItem";
 import AddTodo from "../components/addTodo";
-
-function wait(timeout) {
-  return new Promise(resolve => {
-    setTimeout(resolve, timeout);
-  });
-}
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function Todo({ route, navigation }) {
   // const [todos, setTodos] = useState([
@@ -18,32 +14,92 @@ export default function Todo({ route, navigation }) {
   // ]);
 
   const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(loading);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [getData1, setData] = useState(true);
 
-  useEffect( () => {
+  useEffect(() => {   
     fetch('https://jsonplaceholder.typicode.com/todos?userId=1')
     .then((response) => response.json())
     .then(response => {
       setTodos(response),
-      setLoading(false) 
+      setLoading(false)
+      setData(true)
     })
     .then((json) => console.log(json))
     .catch(e => {
       console.error(e)
+      setData(false)
     })
     }, [])
-    
-    const onRefresh = React.useCallback(() => {
-      setRefreshing(true);
+
+    useEffect(() => {
+      AsyncStorage.setItem('todolist', JSON.stringify(todos))
+    })
+
+    const showData = async () => {
+      const value = await AsyncStorage.getItem('todolist')
+      const valuep = JSON.parse(value) 
+      console.log(todos);
+      setTodos(valuep)
+      setLoading(false)
+     
+      try {
+        const response = await fetch("https://jsonplaceholder.typicode.com/todos?userId=1&fbclid=IwAR3kRnDmQ1VD2u8ljkcqIBFUz7T13d5prsr4a0OF_jHEyy6WPTdLbXD2UoY")
+        const data = await response.json();
+        const item = data;
   
-      wait(2000).then(() => setRefreshing(false));
-    }, [refreshing]);
+        setTodos(item)
+        setLoading(true)
+        setTimeout(() => {
+          setLoading(false)
+        }, 500)
+        setGet(true)
+  
+      } catch (error) {
+        console.log(error)
+        setGet(false)
+      }
+    }  
+    
+    const storeData = async () => {
+      try {
+        await AsyncStorage.setItem("Todos", JSON.stringify(todos))
+        console.log(JSON.stringify(todos));
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const getData = async () => {
+      try {
+        const value = await AsyncStorage.getItem('Todos')
+        if(value !== null) {
+          console.log(value);
+        }
+      } catch(e) {
+        console.error(e)  
+      }
+    }
+
+    const onRefresh = async () => {
+      setLoading(!loading);
+      return fetch('https://jsonplaceholder.typicode.com/todos?userId=1')
+      .then((response) => response.json())
+      .then((responseJson) => {
+        setTodos(responseJson),
+        setLoading(false) 
+      })
+      .catch((error) => {
+        console.error(error);
+      });;
+  }
 
   const pressHandler = id => {
     setTodos(prevTodos => {
       return prevTodos.filter(todo => todo.id != id);
     });
+    storeData();
+    getData();
   };
   const pressHandler1 = item => {
     navigation.navigate('ReviewDetails', {item, edit});
@@ -59,6 +115,8 @@ export default function Todo({ route, navigation }) {
         return true;
       });
     });
+    storeData();
+    getData();
   };
 
   const submitHandler = title => {
@@ -66,6 +124,8 @@ export default function Todo({ route, navigation }) {
       setTodos(prevTodos => {
         return [{ title: title, id: Math.random().toString() }, ...prevTodos];
       });
+      storeData();
+      getData();
     } else {
       Alert.alert("OOPS!", "Todos must over 2 chars long", [
         { text: "Understood", onPress: () => console.log("alert closed") }
@@ -91,25 +151,44 @@ export default function Todo({ route, navigation }) {
         Keyboard.dismiss();
         console.log("dismissed keyboard");
       }}>
-      <View style={styles.container}>
+      {(loading) ?
+        <ActivityIndicator size="large" color="skyblue" />
+        :<View style={styles.container}>
+          {getData1?
+            <View></View>
+            : <TouchableOpacity onPress={() => showData()}>
+              <Text style={{backgroundColor:'yellow'}}>
+                It seems you are offline, tap here or press Refresh when you  get connected.
+              </Text>
+            </TouchableOpacity>
+          }
         <View style={styles.contant}>
           <AddTodo submitHandler={submitHandler} />
           <View style={styles.list}>
-            <FlatList
-              data={todos}
-              renderItem={({ item }) => (
-                // <TouchableOpacity onPress={() => navigation.navigate('ReviewDetails', item)}>
-                <TodoItem item={item} pressHandler={pressHandler} pressHandler1={pressHandler1}
-                 onCheck={onCheck} edit={edit} />
-                // </TouchableOpacity>
-              )}
-            />
-          </View>
-          <Button title='Refresh' onPress={(onRefresh)}>
-          </Button>
+            {/* {(loading)? (
+              <ActivityIndicator size="large" color="skyblue" />
+            )
+            :( */}
+              <FlatList
+                data={todos}
+                renderItem={({ item }) => (
+                  // <TouchableOpacity onPress={() => navigation.navigate('ReviewDetails', item)}>
+                  <TodoItem item={item} pressHandler={pressHandler} pressHandler1={pressHandler1}
+                  onCheck={onCheck} edit={edit} />
+                  // </TouchableOpacity>
+                )}
+              />
+              
+          </View> 
+          {getData1?
+          <Button title='Refresh' onPress={onRefresh} />:
+          <Button title='Refresh' onPress={() => showData()} />
+          }
         </View>       
       </View>
+      }
     </TouchableWithoutFeedback>
+                
   );
 }
 
